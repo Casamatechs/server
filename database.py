@@ -1,56 +1,49 @@
-import sqlite3
+from datetime import time
+from pony.orm import *
 
-conn = sqlite3.connect('notifi.db')
+db = Database("sqlite", "database.sqlite", create_db=True)
 
-c = conn.cursor()
-
-#Creacion tabla Universidad
-
-c.execute('''CREATE TABLE `UNIVERSIDAD` (`idUni` varchar(10),
-`Nombre` varchar(100),
-primary key (`idUni`))''')
-
-#Creacion tabla Departamento
-
-c.execute('''CREATE TABLE `DEPARTAMENTO` (`idDep` varchar(15),
-`Nombre` varchar(100),
-primary key (`idDep`))''')
-
-#Creacion tabla Escuela
-c.execute('''CREATE TABLE `ESCUELA` (`idEscuela` varchar(15),
-`Nombre` varchar(100),
-`UNIVERSIDAD` varchar(10),
-FOREIGN KEY(`UNIVERSIDAD`) REFERENCES `UNIVERSIDAD`(`idUni`),
-primary key (`idEscuela`))''')
+class Universidad(db.Entity):
+    idUni = PrimaryKey(str)
+    NombreUni = Required(str)
+    escuelas = Set("Escuela")
+    
+    
+class Escuela(db.Entity):
+    idEsc = PrimaryKey(str)
+    Nombre = Required(str)
+    universidad = Required(Universidad)
+    departamentos = Set("Departamento")
 
 
-#Creacion tabla Asignatura
+class Asignatura(db.Entity):
+    idAsig = PrimaryKey(int)
+    Nombre = Required(str)
+    departamento = Required("Departamento")
+    cambios = Set("Cambio")
 
-c.execute('''CREATE TABLE `ASIGNATURA` (`idAsig` int,
-`Nombre` varchar(100),
-`ESCUELA` varchar(15),
-`DEPARTAMENTO` varchar(15),
-FOREIGN KEY(`ESCUELA`) REFERENCES `ESCUELA`(`idEscuela`),
-FOREIGN KEY(`DEPARTAMENTO`) REFERENCES `DEPARTAMENTO`(`idDep`),
-primary key (`idAsig`))''')
 
-#Creacion tabla Categoria
+class Departamento(db.Entity):
+    idDep = PrimaryKey(str)
+    Nombre = Required(str)
+    escuela = Required(Escuela)
+    asignaturas = Set(Asignatura)
 
-c.execute('''CREATE TABLE `CATEGORIA` (`idCat` int,
-`Nombre` varchar(100),
-primary key (`idCat`))''')
 
-#Creacion tabla Cambio
+class Cambio(db.Entity):
+    idC = PrimaryKey(int, auto=True)
+    Titulo = Required(str)
+    Body = Required(str)
+    Fecha = Optional(time)
+    asignatura = Required(Asignatura)
+    categoria = Required("Categoria")
 
-c.execute('''CREATE TABLE `CAMBIO` (`idCambio` int,
-`Titulo` varchar(250),
-`Body` varchar(150),
-`Fecha` DATETIME,
-`ASIGNATURA` int,
-FOREIGN KEY(`ASIGNATURA`) REFERENCES `ASIGNATURA`(`idAsig`),
-primary key (`idCambio`))''')
 
-conn.commit()
+class Categoria(db.Entity):
+    idCat = PrimaryKey(int, auto=True)
+    Nombre = Required(str)
+    cambios = Set(Cambio)
 
-conn.close()
 
+sql_debug(True)
+db.generate_mapping(create_tables=True)
